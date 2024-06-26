@@ -16,6 +16,9 @@ class Card:
                     14: "Ace",}[self.value]
             return f"{name} of {self.suit}"
         
+    def __repr__(self):
+        return str(self)
+        
     def __lt__(self, other):
         return self.value < other.value
 
@@ -59,6 +62,7 @@ class Dealer:
                          "money": 10000,
                          "folded": False} for player_class in player_classes]
         self.pool = []
+        self.allIn = False
 
     def get_move(self, player, log=False):
         non_folded = [x["bet"] for x in self.players if not x["folded"]]
@@ -77,22 +81,37 @@ class Dealer:
                         if x["class"] is not player["class"]],
             "pool": self.pool
         })
-        if ((type(bet) == int or bet.isdigit())
-        and int(bet) >= max(non_folded) 
-        and int(bet) <= player["money"]):
-            player["bet"] = int(bet)
-            if log:
-                if int(bet) == max(non_folded):
-                    print(f'{player["class"].__class__.__name__} matched ${int(bet)}')
-                else:
-                    print(f'{player["class"].__class__.__name__} raised to ${int(bet)}')
+
+        if (type(bet) == int):
+            if self.allIn and bet >= self.allIn:
+                player["bet"] = self.allIn
+                if log:
+                    print(f'{player["class"].__class__.__name__} matched all in on ${self.allIn}')
+            elif bet >= max(non_folded) and bet <= player["money"]:
+                player["bet"] = bet
+                if log:
+                    if bet == max(non_folded):
+                        print(f'{player["class"].__class__.__name__} matched ${bet}')
+                    else:
+                        print(f'{player["class"].__class__.__name__} raised to ${bet}')
+            elif max(non_folded) > player["money"] and bet >= player["money"]:
+                self.allIn = player["money"]
+                for x in self.players:
+                    x["bet"] = min(self.allIn, x["bet"])
+                if log:
+                    print(f'{player["class"].__class__.__name__} went all in on ${self.allIn}')
+            else:
+                player["folded"] = True
+                if log:
+                    print(f'{player["class"].__class__.__name__} folded')
         else:
             player["folded"] = True
             if log:
                 print(f'{player["class"].__class__.__name__} folded')
         return
     
-    def evaluate_hand(self, hand):
+    @staticmethod
+    def evaluate_hand(hand):
         ranking_values = {
             "high": 0,
             "pair": 1,
@@ -105,7 +124,6 @@ class Dealer:
             "srtfsh": 8
         }
 
-        hand = hand + self.pool
         # high card
         value = max([card.value for card in hand])
         ranking = ranking_values["high"]
@@ -147,15 +165,15 @@ class Dealer:
             straight = all(map(lambda i: five[i].value+1 == five[i+1].value, range(4)))
             if flush and straight:
                 ranking = ranking_values["srtfsh"]
-                value = five[4]
+                value = five[4].value
             elif flush:
                 if ranking < ranking_values["flush"]:
                     ranking = ranking_values["flush"]
-                    value = five[4]
+                    value = five[4].value
             elif straight:
-                if ranking < ranking_values["straight"]:
-                    ranking = ranking_values["straight"]
-                    value = five[4]
+                if ranking < ranking_values["srt"]:
+                    ranking = ranking_values["srt"]
+                    value = five[4].value
 
         return value + (14*ranking)
         
@@ -164,24 +182,23 @@ class Dealer:
         highest = 0
         winners = 0
         for player in self.players:
-            if player["folded"]:
-                player["money"] -= player["bet"]
+            player["money"] -= player["bet"]
             reward += player["bet"]
         for player in self.players:
             if player["folded"]:
                 continue
-            highest = max(highest, self.evaluate_hand(player["hand"]))
+            highest = max(highest, self.evaluate_hand(player["hand"] + self.pool))
         for player in self.players:
             if player["folded"]:
                 continue
-            if highest == self.evaluate_hand(player["hand"]):
+            if highest == self.evaluate_hand(player["hand"] + self.pool):
                 winners += 1
         for player in self.players:
             if player["folded"]:
                 continue
-            if highest == self.evaluate_hand(player["hand"]):
+            if highest == self.evaluate_hand(player["hand"] + self.pool):
                 if log:
-                    print(f'{player["class"].__class__.__name__} won {reward//winners}')
+                    print(f'{player["class"].__class__.__name__} won {reward//winners} (bet ${player["bet"]})')
                 player["money"] += reward//winners
         for player in self.players:
             while len(player["hand"]):
@@ -190,6 +207,7 @@ class Dealer:
             player["folded"] = False
         while len(self.pool):
             self.deck.add(self.pool.pop(0))
+        self.allIn = False
 
     def game(self, log=False):
         # first betting round
@@ -200,6 +218,10 @@ class Dealer:
             if self.get_move(player, log=log) == "end":
                 self.cleanup(log=log)
                 return
+        
+        if self.allIn:
+            self.cleanup(log=log)
+            return
             
         # the flop
         self.pool.extend(self.deck.draw(3))
@@ -214,6 +236,10 @@ class Dealer:
         
         # 2 subsequent betting rounds
         for i in range(2):
+            if self.allIn:
+                self.cleanup(log=log)
+                return
+        
             self.pool.append(self.deck.draw())
             if log:
                 if i == 0:
@@ -226,5 +252,49 @@ class Dealer:
                 if self.get_move(player, log=log) == "end":
                     self.cleanup(log=log)
                     return
+        
+        # make everyone match (no raises allowed)
+        for player in self.players:
+            non_folded = [x["bet"] for x in self.players if not x["folded"]]
+            if len(non_folded) == 1:
+                self.cleanup(log=log)
+                return
+            bet = player["class"].move({
+                "self": {
+                    "hand": player["hand"],
+                    "bet": player["bet"],
+                    "money": player["money"]
+                },
+                "others": [{"bet": x["bet"],
+                            "money": x["money"],
+                            "folded": x["folded"]} 
+                            for x in self.players
+                            if x["class"] is not player["class"]],
+                "pool": self.pool
+            })
+
+            if (type(bet) == int):
+                if self.allIn and bet >= self.allIn:
+                    player["bet"] = self.allIn
+                    if log:
+                        print(f'{player["class"].__class__.__name__} matched all in on ${self.allIn}')
+                elif bet >= max(non_folded) and bet <= player["money"]:
+                    player["bet"] = min(max(non_folded), bet)
+                    if log:
+                        print(f'{player["class"].__class__.__name__} matched ${bet}')
+                elif max(non_folded) > player["money"] and bet >= player["money"]:
+                    self.allIn = player["money"]
+                    for x in self.players:
+                        x["bet"] = min(self.allIn, x["bet"])
+                    if log:
+                        print(f'{player["class"].__class__.__name__} went all in on ${self.allIn}')
+                else:
+                    player["folded"] = True
+                    if log:
+                        print(f'{player["class"].__class__.__name__} folded')
+            else:
+                player["folded"] = True
+                if log:
+                    print(f'{player["class"].__class__.__name__} folded')
                 
         self.cleanup(log=log)

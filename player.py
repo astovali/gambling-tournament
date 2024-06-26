@@ -12,7 +12,7 @@ class Player:
         # You should store or find any other data you want...
         # ...such as turn num, previous bet changes
         # return what you want to set your bet to (or F to fold)
-        return data["self"]["bet"] + 1
+        return max([x["bet"] for x in data["others"]] + [data["self"]["bet"]])
     
     def cleanup(self, data):
         # called at end of a game
