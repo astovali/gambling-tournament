@@ -1,10 +1,7 @@
 from dealer import Dealer
-from player import Player
+from player import Player, User
 from astovali_bot import AstovaliBot
 
-dealer = Dealer([Player, AstovaliBot])
-for _ in range(10000):
+dealer = Dealer([User, AstovaliBot, Player], 1000)
+while True:
     dealer.game(log=False)
-
-for player in dealer.players:
-    print(f'{player["class"].__class__.__name__}: ${player["money"]}')

@@ -1,4 +1,5 @@
 from dealer import Dealer, Card
+from math import ceil
 
 class AstovaliBot:
     best_hand = [
@@ -21,7 +22,7 @@ class AstovaliBot:
             if data["self"]["hand"][0].value == data["self"]["hand"][1].value:
                 value = value + 28
             best_value = 14*4 # two aces
-            bet = (((value**2)/(best_value**2)) * data["self"]["money"])/10
+            bet = ((value**2)/(best_value**2)) * (data["self"]["money"]/10)
         else:
             hand = data["self"]["hand"] + data["pool"]
             value = Dealer.evaluate_hand(hand)
@@ -31,7 +32,7 @@ class AstovaliBot:
         if bet < match_value and match_value*0.8 < bet:
             return min(match_value, data["self"]["money"])
 
-        return min(int(bet), data["self"]["money"])
+        return min(ceil(bet), data["self"]["money"])
     
     def cleanup(self, data):
         pass

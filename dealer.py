@@ -54,15 +54,15 @@ class Deck:
         self.deck.append(card)
 
 class Dealer:
-    def __init__(self, player_classes):
+    def __init__(self, player_classes, starting_money):
         self.deck = Deck()
         self.players = [{"class": player_class(), 
                          "hand": [], 
                          "bet": 0, 
-                         "money": 10000,
+                         "money": starting_money,
                          "folded": False} for player_class in player_classes]
         self.pool = []
-        self.allIn = False
+        self.allIn = -1
 
     def get_move(self, player, log=False):
         non_folded = [x["bet"] for x in self.players if not x["folded"]]
@@ -76,14 +76,15 @@ class Dealer:
             },
             "others": [{"bet": x["bet"],
                         "money": x["money"],
-                        "folded": x["folded"]} 
+                        "folded": x["folded"],
+                        "name": x["class"].__class__.__name__} 
                         for x in self.players
                         if x["class"] is not player["class"]],
             "pool": self.pool
         })
 
         if (type(bet) == int):
-            if self.allIn and bet >= self.allIn:
+            if self.allIn != -1 and bet >= self.allIn:
                 player["bet"] = self.allIn
                 if log:
                     print(f'{player["class"].__class__.__name__} matched all in on ${self.allIn}')
@@ -201,13 +202,31 @@ class Dealer:
                     print(f'{player["class"].__class__.__name__} won {reward//winners} (bet ${player["bet"]})')
                 player["money"] += reward//winners
         for player in self.players:
+            player["class"].cleanup({
+                "self": {
+                    "hand": player["hand"],
+                    "bet": player["bet"],
+                    "money": player["money"]
+                },
+                "others": [{"bet": x["bet"],
+                            "money": x["money"],
+                            "folded": x["folded"],
+                            "name": x["class"].__class__.__name__,
+                            "hand": x["hand"]} 
+                            for x in self.players
+                            if x["class"] is not player["class"]],
+                "pool": self.pool
+            })
+        for player in self.players:
             while len(player["hand"]):
                 self.deck.add(player["hand"].pop(0))
             player["bet"] = 0
             player["folded"] = False
+            if player["money"] < 1:
+                player["money"] = 1
         while len(self.pool):
             self.deck.add(self.pool.pop(0))
-        self.allIn = False
+        self.allIn = -1
 
     def game(self, log=False):
         # first betting round
@@ -219,7 +238,7 @@ class Dealer:
                 self.cleanup(log=log)
                 return
         
-        if self.allIn:
+        if self.allIn != -1:
             self.cleanup(log=log)
             return
             
@@ -233,13 +252,13 @@ class Dealer:
             if self.get_move(player, log=log) == "end":
                 self.cleanup(log=log)
                 return
+            
+        if self.allIn != -1:
+            self.cleanup(log=log)
+            return
         
         # 2 subsequent betting rounds
         for i in range(2):
-            if self.allIn:
-                self.cleanup(log=log)
-                return
-        
             self.pool.append(self.deck.draw())
             if log:
                 if i == 0:
@@ -252,6 +271,9 @@ class Dealer:
                 if self.get_move(player, log=log) == "end":
                     self.cleanup(log=log)
                     return
+            if self.allIn != -1:
+                self.cleanup(log=log)
+                return
         
         # make everyone match (no raises allowed)
         for player in self.players:
@@ -267,14 +289,15 @@ class Dealer:
                 },
                 "others": [{"bet": x["bet"],
                             "money": x["money"],
-                            "folded": x["folded"]} 
+                            "folded": x["folded"],
+                            "name": x["class"].__class__.__name__} 
                             for x in self.players
                             if x["class"] is not player["class"]],
                 "pool": self.pool
             })
 
             if (type(bet) == int):
-                if self.allIn and bet >= self.allIn:
+                if self.allIn != -1 and bet >= self.allIn:
                     player["bet"] = self.allIn
                     if log:
                         print(f'{player["class"].__class__.__name__} matched all in on ${self.allIn}')

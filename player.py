@@ -7,7 +7,7 @@ class Player:
         # called each betting round
         # data layout:
         # "self": {"hand": [...Card], "bet": int, "money": int}
-        # "others": [...{"bet": int, "money": int, "folded": False}]
+        # "others": [...{"bet": int, "money": int, "folded": False, "name": "Player"}]
         # "pool": [...Card]
         # You should store or find any other data you want...
         # ...such as turn num, previous bet changes
@@ -19,3 +19,40 @@ class Player:
         # data contains the same as in self.move but you also have
         # access to the "hand" attribute of each element in "others"
         pass
+
+class User:
+    def __init__(self):
+        print("Bet at least the previous bet's amount")
+        print("Bet no more than your balance")
+        print("Bet 'F' to fold")
+        self.money = 0
+
+    def move(self, data):
+        self.money = data["self"]["money"]
+        print(f'Your balance: ${self.money}')
+        print(f'Current bet is ${max([x["bet"] for x in data["others"]] + [data["self"]["bet"]])}')
+        print(f'Your hand is {data["self"]["hand"]}')
+        print(f'Pool is {data["pool"]}')
+        bet = ''
+        while not bet.isdigit() and bet != 'F':
+            bet = input("Bet: $")
+        if bet == 'F':
+            return bet
+        return int(bet)
+    
+    def cleanup(self, data):
+        print("Other players hands were: ")
+        for player in data["others"]:
+            print(player["hand"], end='')
+            if player["folded"]:
+                print(" (folded)")
+            else:
+                print(f' bet ${player["bet"]}')
+        gain = data["self"]["money"] - self.money
+        self.money = data["self"]["money"]
+        if gain > 0:
+            print(f"You won and gained ${gain}")
+        elif gain < 0:
+            print(f"You lost ${gain}")
+        else:
+            print(f"You didn't lose or gain any money")
