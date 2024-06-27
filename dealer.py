@@ -221,14 +221,21 @@ class Dealer:
             while len(player["hand"]):
                 self.deck.add(player["hand"].pop(0))
             player["bet"] = 0
-            player["folded"] = False
-            if player["money"] < 1:
-                player["money"] = 1
+            if player["money"] == 0:
+                player["folded"] = True
+            else:
+                player["folded"] = False
         while len(self.pool):
             self.deck.add(self.pool.pop(0))
         self.allIn = -1
 
     def game(self, log=False):
+        non_folded = [x["bet"] for x in self.players if not x["folded"]]
+        if len(non_folded) == 1:
+            if log:
+                print("Only 1 has money")
+            return "end"
+        
         # first betting round
         for player in self.players:
             player["hand"].extend(self.deck.draw(2))
@@ -266,6 +273,8 @@ class Dealer:
         
         # make everyone match (no raises allowed)
         for player in self.players:
+            if player["folded"]:
+                continue
             non_folded = [x["bet"] for x in self.players if not x["folded"]]
             if len(non_folded) == 1:
                 self.cleanup(log=log)
