@@ -2,13 +2,6 @@ from dealer import Dealer, Card
 from math import ceil
 
 class VirusBot:
-    best_hand = [
-        Card('♠', 14),
-        Card('♠', 13),
-        Card('♠', 12),
-        Card('♠', 11),
-        Card('♠', 10)
-    ]
     '''
     high:0
     pair:1
@@ -67,40 +60,3 @@ class VirusBot:
     def cleanup(self, data):
         pass
     
-    '''
-    def __init__(self):
-        # Called once at the beginning of tournament
-        pass
-
-    def move(self, data):
-        # called each betting round
-        # data layout:
-        # "self": {"hand": [...Card], "bet": int, "money": int}
-        # "others": [...{"bet": int, "money": int, "folded": False, "name": "Player"}]
-        # "pool": [...Card]
-        # You should store or find any other data you want...
-        # ...such as turn num, previous bet changes
-        # return what you want to set your bet to (or F to fold)
-        currentbet = max([x["bet"] for x in data["others"]] + [data["self"]["bet"]])
-        maxbet = int(currentbet * 2) 
-        hand = data["self"]["hand"] + data["pool"]
-        value = Dealer.evaluate_hand(hand)
-        if data["self"]["money"] > currentbet:
-            if value == 0:
-                if maxbet < data["self"]["money"]:
-                    return int(maxbet)
-                else:
-                    return int(data["self"]["money"])
-            elif value == 8:
-                return int(data["self"]["money"])
-            else:
-                return max([x["bet"] for x in data["others"]] + [data["self"]["bet"]])
-        else:
-            return 'F'
-    
-    def cleanup(self, data):
-        # called at end of a game
-        # data contains the same as in self.move but you also have
-        # access to the "hand" attribute of each element in "others"
-        pass
-    '''
