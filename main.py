@@ -1,9 +1,10 @@
 from dealer import Dealer
 from player import Player, User
+from virus_bot import VirusBot
 from astovali_bot import AstovaliBot, AllInBot
 from itertools import combinations
 
-bots = [Player, AstovaliBot, AllInBot]
+bots = [Player, AstovaliBot, AllInBot, VirusBot]
 matchups = []
 for r in range(2, len(bots)+1):
     matchups.extend(combinations(bots, r=r))
