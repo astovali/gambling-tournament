@@ -237,11 +237,7 @@ class Dealer:
             if self.get_move(player, log=log) == "end":
                 self.cleanup(log=log)
                 return
-        
-        if self.allIn != -1:
-            self.cleanup(log=log)
-            return
-            
+    
         # the flop
         self.pool.extend(self.deck.draw(3))
         if log:
@@ -252,10 +248,6 @@ class Dealer:
             if self.get_move(player, log=log) == "end":
                 self.cleanup(log=log)
                 return
-            
-        if self.allIn != -1:
-            self.cleanup(log=log)
-            return
         
         # 2 subsequent betting rounds
         for i in range(2):
@@ -271,9 +263,6 @@ class Dealer:
                 if self.get_move(player, log=log) == "end":
                     self.cleanup(log=log)
                     return
-            if self.allIn != -1:
-                self.cleanup(log=log)
-                return
         
         # make everyone match (no raises allowed)
         for player in self.players:

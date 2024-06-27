@@ -11,9 +11,12 @@ class AstovaliBot:
     ]
     
     def __init__(self):
-        pass
+        self.allInCount = []
 
     def move(self, data):
+        if self.allInCount == []:
+            self.allInCount = [0 for _ in data["others"]]
+
         match_value = max([x["bet"] for x in data["others"]] + [data["self"]["bet"]])
         bet = match_value
 
@@ -34,5 +37,18 @@ class AstovaliBot:
 
         return min(ceil(bet), data["self"]["money"])
     
+    def cleanup(self, data):
+        pass
+
+class AllInBot:
+    def __init__(self):
+        pass
+
+    def move(self, data):
+        if len(data["pool"]) == 0:
+            return min(data["self"]["money"], # bet at most all my money
+            max([x["bet"] for x in data["others"]] + [5])) # bet at least $5, and match
+        return data["self"]["money"]
+
     def cleanup(self, data):
         pass
