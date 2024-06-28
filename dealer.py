@@ -95,10 +95,8 @@ class Dealer:
     def __init__(self, player_classes, starting_money):
         self.deck = Deck()
         self.players = []
-        def init_wrapper(class_object):
-            return class_object()
         for player_class in player_classes:
-            instance = time_limit(init_wrapper, allowed_time*2, None, [player_class])
+            instance = time_limit(player_class, allowed_time*2, None, [])
             if instance:
                 self.players.append(
                    {"class": instance,
