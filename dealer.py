@@ -1,5 +1,48 @@
 import random
+import threading
+import ctypes
+from time import sleep
 from itertools import combinations
+
+allowed_time = 5
+
+class KillableThread(threading.Thread):
+    def __init__(self, target=None, args=[]):
+        threading.Thread.__init__(self)
+        self.target = target
+        self.args = args
+        self.out = None
+
+    def run(self):
+        self.out = self.target(*self.args)
+          
+    def get_id(self):
+        if hasattr(self, "_thread_id"):
+            return self._thread_id
+        for id, thread in threading._active.items():
+            if thread is self:
+                return id
+  
+    def kill(self):
+        thread_id = self.get_id()
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id,
+              ctypes.py_object(SystemExit))
+        if res > 1:
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, 0)
+            print("Exception raise failure")
+
+def time_limit(func, time, default, args=[]):
+    t1 = KillableThread(target=func, args=args)
+    t2 = KillableThread(target=sleep, args=[time])
+    t1.start()
+    t2.start()
+    while t1.is_alive() and t2.is_alive():
+        pass
+    if not t1.is_alive():
+        t2.kill()
+        return t1.out
+    t1.kill()
+    return default
 
 class Card:
     def __init__(self, suit, value):
@@ -36,12 +79,7 @@ class Deck:
         random.shuffle(self.deck)
         self.unshuffled = len(self.deck)
 
-    def draw(self, num = 0):
-        if num == 0:
-            if self.unshuffled <= 0:
-                self.shuffle()
-            self.unshuffled -= 1
-            return self.deck.pop(0)
+    def draw(self, num = 1):
         out = []
         for _ in range(num):
             if self.unshuffled <= 0:
@@ -56,11 +94,18 @@ class Deck:
 class Dealer:
     def __init__(self, player_classes, starting_money):
         self.deck = Deck()
-        self.players = [{"class": player_class(), 
-                         "hand": [], 
-                         "bet": 0, 
-                         "money": starting_money,
-                         "folded": False} for player_class in player_classes]
+        self.players = []
+        def init_wrapper(class_object):
+            return class_object()
+        for player_class in player_classes:
+            instance = time_limit(init_wrapper, allowed_time*2, None, [player_class])
+            if instance:
+                self.players.append(
+                   {"class": instance,
+                    "hand": [], 
+                    "bet": 0, 
+                    "money": starting_money,
+                    "folded": False})
         self.pool = []
         self.allIn = -1
 
@@ -68,7 +113,7 @@ class Dealer:
         non_folded = [x["bet"] for x in self.players if not x["folded"]]
         if len(non_folded) == 1:
             return "end"
-        bet = player["class"].move({
+        bet = time_limit(player["class"].move, allowed_time, 'F', [{
             "self": {
                 "hand": player["hand"],
                 "bet": player["bet"],
@@ -81,9 +126,9 @@ class Dealer:
                         for x in self.players
                         if x["class"] is not player["class"]],
             "pool": self.pool
-        })
+        }])
 
-        if (type(bet) == int):
+        if type(bet) == int:
             if self.allIn != -1 and bet >= self.allIn:
                 player["bet"] = self.allIn
                 if log:
@@ -150,6 +195,7 @@ class Dealer:
                 if i.value == j.value:
                     if (ranking == ranking_values["triplet"]
                     and i.value != value):
+                        # full house
                         ranking = ranking_values["house"]
                     elif (ranking == ranking_values["pair"]
                     and i.value != value):
@@ -205,7 +251,7 @@ class Dealer:
                     print(f'{player["class"].__class__.__name__} won {reward//winners} (bet ${player["bet"]})')
                 player["money"] += reward//winners
         for player in self.players:
-            player["class"].debrief({
+            time_limit(player["class"].debrief, allowed_time, None, [{
                 "self": {
                     "hand": player["hand"],
                     "bet": player["bet"],
@@ -219,7 +265,7 @@ class Dealer:
                             for x in self.players
                             if x["class"] is not player["class"]],
                 "pool": self.pool
-            })
+            }])
         for player in self.players:
             while len(player["hand"]):
                 self.deck.add(player["hand"].pop(0))
@@ -261,7 +307,7 @@ class Dealer:
         
         # 2 subsequent betting rounds
         for i in range(2):
-            self.pool.append(self.deck.draw())
+            self.pool.extend(self.deck.draw(1))
             if log:
                 if i == 0:
                     print(f"Turn was {self.pool[3]}")
@@ -282,7 +328,7 @@ class Dealer:
             if len(non_folded) == 1:
                 self.cleanup(log=log)
                 return
-            bet = player["class"].move({
+            bet = time_limit(player["class"].move, allowed_time, 'F', [{
                 "self": {
                     "hand": player["hand"],
                     "bet": player["bet"],
@@ -295,7 +341,7 @@ class Dealer:
                             for x in self.players
                             if x["class"] is not player["class"]],
                 "pool": self.pool
-            })
+            }])
 
             if (type(bet) == int):
                 if self.allIn != -1 and bet >= self.allIn:

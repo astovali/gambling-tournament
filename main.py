@@ -4,7 +4,7 @@ from virus_bot import VirusBot
 from astovali_bot import AstovaliBot, AllInBot
 from itertools import combinations
 
-bots = [Player, AstovaliBot, VirusBot, AllInBot]
+bots = [Player, AstovaliBot, VirusBot]
 matchups = []
 for r in range(2, len(bots)+1):
     matchups.extend(combinations(bots, r=r))

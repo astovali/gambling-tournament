@@ -1,6 +1,5 @@
-from dealer import Dealer, Card
+from dealer import Card
 from math import ceil
-from statistics import mean
 from itertools import combinations
 
 class AstovaliBot:
