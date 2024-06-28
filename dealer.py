@@ -113,6 +113,9 @@ class Dealer:
     
     @staticmethod
     def evaluate_hand(hand):
+        if len(hand) == 0:
+            return 0
+
         ranking_values = {
             "high": 0,
             "pair": 1,
@@ -202,7 +205,7 @@ class Dealer:
                     print(f'{player["class"].__class__.__name__} won {reward//winners} (bet ${player["bet"]})')
                 player["money"] += reward//winners
         for player in self.players:
-            player["class"].cleanup({
+            player["class"].debrief({
                 "self": {
                     "hand": player["hand"],
                     "bet": player["bet"],

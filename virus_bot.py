@@ -79,5 +79,5 @@ class VirusBot:
             return 'F'
         return min(ceil(bet), data["self"]["money"])
     
-    def cleanup(self, data):
+    def debrief(self, data):
         pass

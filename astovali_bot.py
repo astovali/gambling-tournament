@@ -111,7 +111,7 @@ class AstovaliBot:
 
         return self.cleanse_bet(bet, data["self"]["money"], match_value)
     
-    def cleanup(self, data):
+    def debrief(self, data):
         pass
 
 class AllInBot:
@@ -124,5 +124,5 @@ class AllInBot:
             return min(data["self"]["money"], 5) # bet $5
         return data["self"]["money"] # GO ALL IN !!!!
 
-    def cleanup(self, data):
+    def debrief(self, data):
         pass

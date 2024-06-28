@@ -14,7 +14,7 @@ class Player:
         # return what you want to set your bet to (or F to fold)
         return max([x["bet"] for x in data["others"]] + [data["self"]["bet"]])
     
-    def cleanup(self, data):
+    def debrief(self, data):
         # called at end of a game
         # data contains the same as in self.move but you also have
         # access to the "hand" attribute of each element in "others"
@@ -52,7 +52,7 @@ class User:
             self.allIn = True
         return int(bet)
     
-    def cleanup(self, data):
+    def debrief(self, data):
         print("Other players hands were: ")
         for player in data["others"]:
             print(player["hand"], end='')
